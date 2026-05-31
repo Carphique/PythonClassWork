@@ -18,10 +18,11 @@ urlpatterns = [
     path('product/<int:id>', views.get_product_by_id, name="product"),
     path('except/', views.exept_view, name="exception"),
 
-    path('branches/', views.all_branches, name="all-branches"),
-    path('branches/<str:city>/', views.branch_detail, name="branch-detail"),
+    path('history/', views.history_view, name='history_main'),
+    path('history/<int:year>/', views.history_view, name='history_year'),
 
-    path('history/', views.all_history, name="all-history"),
-    path('history/<str:god>/', views.history_detail, name="history-detail"),
+    # 2. Маршруты для городов
+    path('cities/', views.cities_view, name='cities_main'),
+    path('cities/<str:city>/<int:year>/', views.cities_view, name='cities_details'),
 
 ]

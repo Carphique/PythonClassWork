@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect  # <--- Додали redirect сюди
 from django.views.decorators.csrf import csrf_exempt
 from django.views import View
 from django.http import HttpResponse, HttpRequest, HttpResponseBadRequest, JsonResponse
@@ -6,7 +6,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from .utils import get_current_timestamp
 
 branches_data = {
-    "London": "Філія у Лондоні: Головний офіс у Великій Британії, заснований у 2010 році.",
+    "London": "Філія у Лондоні: Головний офис у Великій Британії, заснований у 2010 році.",
     "Paris": "Філія у Парижі: Європейський центр дизайну та маркетингу.",
     "Kyiv": "Філія у Києві: Центр розробки програмного забезпечення.",
     "Odessa": "Філія у Одесі: Найкраща філія у світі блін бомба",
@@ -16,12 +16,20 @@ branches_data = {
     "Italy": "одобрено персиком із Call me by your name",
     "Chornogoria": "одобрено моїм старшим братом",
     "Roblox": "удаліла мама поздно"
+}
 
+# Наша фейкова база даних для домашки
+HISTORY_DB = {
+    1885: "У 1885 році у Франції відбулося безліч цікавих подій...",
+    1914: "У 1914 році у Франції почалася Перша світова війна..."
 }
-history_data = {
-    1885: "Франція 1885 страшно",
-    1914: "Франція 1914 дуже страшно",
+
+CITIES_DB = {
+    "Paris": {1924: "У 1924 році в Парижі відбулися літні Олімпійські ігри."},
+    "Marseille": {1956: "У 1956 році в Марселі відбулося щось дуже важливе..."}
 }
+
+
 class Product:
     id: int
     slug: str
@@ -41,23 +49,26 @@ class Product:
             <h3>{self.description}
         """
 
+
 class ProductSerializer(DjangoJSONEncoder):
     def default(self, o):
         if isinstance(o, Product):
             print(o.__dict__)
             result = {}
-            result["id"] =o.id
+            result["id"] = o.id
             result["slug"] = o.slug
             result["name"] = o.name
             result["description"] = o.description
             return result
         return super().default(o)
 
+
 products = [
-        Product(get_current_timestamp(), "first-product", "First product", "Very good product"),
-        Product(get_current_timestamp(), "second-product", "Second product", "Very good product"),
-        Product(get_current_timestamp(), "third-product", "Third product", "Very good product")
+    Product(get_current_timestamp(), "first-product", "First product", "Very good product"),
+    Product(get_current_timestamp(), "second-product", "Second product", "Very good product"),
+    Product(get_current_timestamp(), "third-product", "Third product", "Very good product")
 ]
+
 
 class ProductView(View):
     @csrf_exempt
@@ -69,10 +80,9 @@ class ProductView(View):
         param_slug = request.GET.get("slug", None)
         if param_id == None and param_slug == None:
             if len(products) > 0:
-                return JsonResponse(products, ProductSerializer, safe = False)
-
+                return JsonResponse(products, ProductSerializer, safe=False)
             else:
-                r = JsonResponse({"errors_data" : "Products not found"})
+                r = JsonResponse({"errors_data": "Products not found"})
                 r.status_code = 404
                 r.reason_phrase = "Not Found"
                 return r
@@ -81,71 +91,81 @@ class ProductView(View):
             try:
                 id = int(param_id)
             except ValueError:
-                r = JsonResponse({"errors_data" : "'Id' parameter must be number"})
+                r = JsonResponse({"errors_data": "'Id' parameter must be number"})
                 r.status_code = 400
                 r.reason_phrase = "Bad Request"
                 return r
             result = list(filter(lambda x: x.id == id, products))
             if len(result) < 1:
-                r = JsonResponse({"errors_data" : "Products not found"})
+                r = JsonResponse({"errors_data": "Products not found"})
                 r.status_code = 400
                 r.reason_phrase = "Not Found"
                 return r
             else:
-                return JsonResponse(result[0], ProductSerializer, safe = False)
+                return JsonResponse(result[0], ProductSerializer, safe=False)
 
         elif param_slug is not None:
             result = list(filter(lambda x: x.slug == param_slug, products))
             if len(result) < 1:
-                r = JsonResponse({"errors_data" : "Products not found"})
+                r = JsonResponse({"errors_data": "Products not found"})
                 r.status_code = 400
                 r.reason_phrase = "Not Found"
                 return r
             else:
-                return JsonResponse(result[0], ProductSerializer, safe = False)
+                return JsonResponse(result[0], ProductSerializer, safe=False)
+
 
 class HomeView(View):
     def get(self, request: HttpRequest):
         return HttpResponse("<h1>Головна сторінка</h1>")
 
+
 class NewsView(View):
     def get(self, request: HttpRequest):
         return HttpResponse("<h1>Новини компанії</h1>")
+
 
 class ManagementView(View):
     def get(self, request: HttpRequest):
         return HttpResponse("<h1>Керівництво компанії</h1>")
 
+
 class AboutView(View):
     def get(self, request: HttpRequest):
         return HttpResponse("<h1>Про компанію</h1>")
+
+
 class ContactsView(View):
     def get(self, request: HttpRequest):
         return HttpResponse("<h1>Контакти</h1>")
 
+
 def exept_view(request):
     return ValueError("Failed!")
+
 
 def index(request):
     return HttpResponse("<h1>Start Page</h1>")
 
+
 def json_response(request):
     return JsonResponse({
-        "status_code" : 404,
-        "reason_phrase" : "Not Found",
-        "data" : "Hello"
+        "status_code": 404,
+        "reason_phrase": "Not Found",
+        "data": "Hello"
     })
+
 
 def get_all_products(request):
     return JsonResponse(products, ProductSerializer, safe=False)
+
 
 def get_product_by_id(request, id):
     r = JsonResponse({})
     result = list(filter(lambda x: x.id == id, products))
     if len(result) < 1:
         r.status_code = 404
-        r.content = {"status_code" : 404, "reason_phrase" : "Product not found", "data": None}
-
+        r.content = {"status_code": 404, "reason_phrase": "Product not found", "data": None}
     return JsonResponse(result[0], ProductSerializer, safe=False)
 
 
@@ -153,14 +173,42 @@ def all_branches(request):
     branches_list = "</li><li>".join(branches_data.keys())
     return HttpResponse(f"<h1>Наші філії:</h1><ul><li>{branches_list}</li></ul>")
 
+
 def branch_detail(request, city):
     info = branches_data.get(city, "Інформація про філію у цьому місті відсутня.")
     return HttpResponse(f"<h1>{city}</h1><p>{info}</p>")
+
 
 def all_history(request):
     history_list = "</li><li>".join(branches_data.keys())
     return HttpResponse(f"<h1>Перша історія:</h1><ul><li>{history_list}</li></ul>")
 
+
 def history_detail(request, data):
     info = branches_data.get(data, "Інформація про історі")
     return HttpResponse(f"<h1>{data}</h1><p>{info}</p>")
+
+
+
+def history_view(request, year=None):
+    if year:
+        if year in HISTORY_DB:
+            return HttpResponse(f"<h1>Історія Франції: {year} рік</h1><p>{HISTORY_DB[year]}</p>")
+        return redirect('history_main')
+
+    return HttpResponse("<h1>Розділ «Історія»</h1><p>Будь ласка, вкажіть рік в URL, щоб дізнатися більше.</p>")
+
+
+def cities_view(request, city=None, year=None):
+    if not city and not year:
+        city = request.GET.get('city')
+        year_str = request.GET.get('year')
+        if year_str and year_str.isdigit():
+            year = int(year_str)
+
+    if city and year:
+        if city in CITIES_DB and year in CITIES_DB[city]:
+            return HttpResponse(f"<h1>{city} у {year} році</h1><p>{CITIES_DB[city][year]}</p>")
+        return redirect('cities_main')
+
+    return HttpResponse("<h1>Сторінка Міста</h1><p>Тут відображається інформація про міста та роки.</p>")
